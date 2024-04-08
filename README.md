@@ -5,7 +5,7 @@
 ## Run the application
 
 Before running the application, make sure [Docker](https://www.docker.com/) is installed.  
-Type this commands in the root folder.
+Type these commands in the root folder.
 
 ```bash
 docker compose up
