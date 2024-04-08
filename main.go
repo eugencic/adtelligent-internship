@@ -17,18 +17,24 @@ func CampaignHandler(ctx *fasthttp.RequestCtx, db *sql.DB) {
 	sourceIDStr := string(ctx.QueryArgs().Peek("source_id"))
 	sourceID, err := strconv.Atoi(sourceIDStr)
 	if err != nil {
-		log.Printf("Invalid source_id: %s", sourceIDStr)
+		log.Printf("invalid source_id: %s", sourceIDStr)
 		ctx.Error("Invalid source_id", fasthttp.StatusBadRequest)
 		return
 	}
 
-	rows, err := db.Query("SELECT c.id, c.name FROM campaigns c INNER JOIN source_campaign sc ON c.id = sc.campaign_id WHERE sc.source_id = ?", sourceID)
+	query := "SELECT c.id, c.name FROM campaigns c INNER JOIN source_campaign sc ON c.id = sc.campaign_id WHERE sc.source_id = ?"
+	rows, err := db.Query(query, sourceID)
 	if err != nil {
-		log.Printf("Error querying campaigns: %v", err)
+		log.Printf("error querying campaigns: %v", err)
 		ctx.Error("Internal Server Error", fasthttp.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
+
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+		}
+	}(rows)
 
 	var campaigns []map[string]interface{}
 	for rows.Next() {
@@ -62,13 +68,19 @@ func main() {
 		return
 	}
 
-	data.PopulateData(database)
+	err = data.PopulateData(database)
+	if err != nil {
+		return
+	}
 
 	printer.PrintSources(database)
 	printer.PrintCampaigns(database)
 	printer.PrintSourceCampaign(database)
 
-	printer.PrintResults(database)
+	err = printer.PrintResults(database)
+	if err != nil {
+		return
+	}
 
 	requestHandler := func(ctx *fasthttp.RequestCtx) {
 		switch string(ctx.Path()) {
@@ -79,7 +91,7 @@ func main() {
 		}
 	}
 
-	log.Println("Starting HTTP server on :8080")
+	log.Println("Starting HTTP server on port 8080...")
 	if err := fasthttp.ListenAndServe(":8080", requestHandler); err != nil {
 		log.Fatalf("Error starting HTTP server: %v", err)
 	}
