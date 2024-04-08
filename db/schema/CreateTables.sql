@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
                                      );
 
 CREATE TABLE IF NOT EXISTS source_campaign (
+                                                id INT AUTO_INCREMENT PRIMARY KEY,
                                                 source_id INT,
                                                 campaign_id INT,
                                                 FOREIGN KEY (source_id) REFERENCES sources(id),

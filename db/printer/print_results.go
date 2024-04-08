@@ -4,17 +4,16 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"strings"
 )
 
-func PrintResults(database *sql.DB) {
+func PrintResults(database *sql.DB) error {
 	queryBytes, err := ioutil.ReadFile("db/printer/ExtractFromTables.sql")
 	if err != nil {
-		log.Fatal("Error reading file:", err)
+		return fmt.Errorf("error reading file: %w", err)
 	}
-	queries := string(queryBytes)
 
+	queries := string(queryBytes)
 	queryList := strings.Split(queries, ";")
 
 	for _, query := range queryList {
@@ -25,13 +24,14 @@ func PrintResults(database *sql.DB) {
 
 		rows, err := database.Query(trimmedQuery)
 		if err != nil {
-			log.Fatal("Error executing query:", err)
+			return fmt.Errorf("error executing querry: %w", err)
 		}
+
 		defer rows.Close()
 
 		columns, err := rows.Columns()
 		if err != nil {
-			log.Fatal("Error retrieving column names:", err)
+			return fmt.Errorf("error retrieving column names: %w", err)
 		}
 
 		values := make([]interface{}, len(columns))
@@ -43,7 +43,7 @@ func PrintResults(database *sql.DB) {
 		for rows.Next() {
 			err := rows.Scan(scanArgs...)
 			if err != nil {
-				log.Fatal("Error scanning row:", err)
+				return fmt.Errorf("error scanning row: %w", err)
 			}
 
 			var result []string
@@ -56,15 +56,16 @@ func PrintResults(database *sql.DB) {
 				case []byte:
 					result = append(result, string(v))
 				default:
-					log.Fatalf("Unexpected data type: %T", v)
+					return fmt.Errorf("unexpected data type: %w", v)
 				}
 			}
 			fmt.Println(strings.Join(result, "\t"))
 		}
 		if err := rows.Err(); err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("error scanning row: %w", err)
 		}
 	}
 
 	fmt.Println("Results printed successfully.")
+	return nil
 }
