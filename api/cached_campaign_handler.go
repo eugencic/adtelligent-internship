@@ -6,12 +6,14 @@ import (
 	"github.com/valyala/fasthttp"
 	"log"
 	"strconv"
+	"strings"
 	"sync"
 )
 
 type Campaign struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID     int    `json:"id"`
+	Name   string `json:"name"`
+	Domain string `json:"domain"`
 }
 
 var (
@@ -45,14 +47,18 @@ func PreloadData(db *sql.DB) error {
 
 	for rows.Next() {
 		var id, sourceID int
-		var name string
+		var name, domain string
 		if err := rows.Scan(&id, &name, &sourceID); err != nil {
 			return err
 		}
 
-		cacheMutex.Lock()
-		cache[sourceID] = append(cache[sourceID], Campaign{ID: id, Name: name})
-		cacheMutex.Unlock()
+		if id%2 == 0 {
+			domain = "yahoo.com"
+		} else {
+			domain = "google.com"
+		}
+
+		cache[sourceID] = append(cache[sourceID], Campaign{ID: id, Name: name, Domain: domain})
 	}
 
 	return nil
@@ -65,12 +71,20 @@ func CachedCampaignHandler(ctx *fasthttp.RequestCtx) {
 		ctx.Error("Invalid source_id", fasthttp.StatusBadRequest)
 		return
 	}
-	cacheMutex.RLock()
+
+	unwantedDomain := strings.ToLower(string(ctx.QueryArgs().Peek("domain")))
+
 	cachedData, ok := cache[sourceID]
-	cacheMutex.RUnlock()
+
+	var filteredData []Campaign
 
 	if ok {
-		respondWithJSON(ctx, cachedData)
+		for _, campaign := range cachedData {
+			if campaign.Domain != unwantedDomain {
+				filteredData = append(filteredData, campaign)
+			}
+		}
+		respondWithJSON(ctx, filteredData)
 	} else {
 		ctx.Error("Data not found", fasthttp.StatusNotFound)
 	}
