@@ -12,7 +12,7 @@ docker compose up
 ```
 
 ```bash
-go run main.go  
+go run .  
 ```
 
 ## Endpoints:
