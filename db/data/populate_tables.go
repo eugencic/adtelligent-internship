@@ -2,12 +2,26 @@ package data
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"time"
 )
 
 func PopulateData(database *sql.DB) error {
+	// List of domains to choose from
+	domains := []string{
+		"gmail.com",
+		"yahoo.com",
+		"hotmail.com",
+		"aol.com",
+		"msn.com",
+		"mail.ru",
+		"yandex.ru",
+		"orange.fr",
+	}
+
+	// Insert sources
 	for i := 0; i < 100; i++ {
 		name := fmt.Sprintf("Source %d", i+1)
 		_, err := database.Exec("INSERT INTO sources (name) VALUES (?)", name)
@@ -16,12 +30,23 @@ func PopulateData(database *sql.DB) error {
 		}
 	}
 
+	// Insert campaigns with random domains
 	for i := 0; i < 100; i++ {
 		name := fmt.Sprintf("Campaign %d", i+1)
-		domain := getRandomDomain()
 		filterType := getRandomFilterType()
-		_, err := database.Exec("INSERT INTO campaigns (name, domain, filter_ype) VALUES (?, ?, ?)",
-			name, domain, filterType)
+
+		// Select 5 random domains
+		selectedDomains := getRandomDomains(domains, 5)
+
+		// Convert selected domains to JSON format
+		domainsJSON, err := json.Marshal(selectedDomains)
+		if err != nil {
+			return fmt.Errorf("error marshalling domains to JSON: %w", err)
+		}
+
+		// Insert campaign into database with domains JSON
+		_, err = database.Exec("INSERT INTO campaigns (name, filter_type, domains) VALUES (?, ?, ?)",
+			name, filterType, domainsJSON)
 		if err != nil {
 			return fmt.Errorf("error inserting campaign: %w", err)
 		}
@@ -61,16 +86,16 @@ func PopulateData(database *sql.DB) error {
 	return nil
 }
 
-func getRandomDomain() string {
-	domains := []string{
-		"hotmail.com",
-		"aol.com",
-		"msn.com",
-		"mail.ru",
+func getRandomDomains(allDomains []string, numDomains int) map[string]bool {
+	rand.Seed(time.Now().UnixNano())
+	selectedDomains := make(map[string]bool)
+
+	for i := 0; i < numDomains; i++ {
+		randIndex := rand.Intn(len(allDomains))
+		selectedDomains[allDomains[randIndex]] = true
 	}
 
-	randIndex := rand.Intn(len(domains))
-	return domains[randIndex]
+	return selectedDomains
 }
 
 func getRandomFilterType() string {

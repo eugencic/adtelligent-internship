@@ -1,8 +1,7 @@
 DROP TABLE IF EXISTS source_campaign;
+DROP TABLE IF EXISTS campaign_domains;
 DROP TABLE IF EXISTS sources;
 DROP TABLE IF EXISTS campaigns;
-DROP TABLE IF EXISTS company_domain_whitelist;
-DROP TABLE IF EXISTS company_domain_blacklist;
 
 CREATE TABLE IF NOT EXISTS sources (
                                         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -12,8 +11,8 @@ CREATE TABLE IF NOT EXISTS sources (
 CREATE TABLE IF NOT EXISTS campaigns (
                                         id INT AUTO_INCREMENT PRIMARY KEY,
                                         name VARCHAR(50),
-                                        domain VARCHAR(255),
-                                        filter_type VARCHAR(255)
+                                        filter_type VARCHAR(255),
+                                        domains JSON
                                      );
 
 CREATE TABLE IF NOT EXISTS source_campaign (

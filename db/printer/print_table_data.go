@@ -2,6 +2,7 @@ package printer
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 )
@@ -27,24 +28,55 @@ func PrintSources(db *sql.DB) {
 	}
 }
 
+type Campaign struct {
+	ID         int
+	Name       string
+	FilterType string
+	Domains    map[string]bool // Map to store domains
+}
+
 func PrintCampaigns(db *sql.DB) {
 	fmt.Println("\nCampaigns:")
-	rows, err := db.Query("SELECT id, name, domain, filter_type FROM campaigns")
+	rows, err := db.Query("SELECT id, name, filter_type, domains FROM campaigns")
 	if err != nil {
 		log.Fatal("Error querying campaigns:", err)
 	}
 	defer rows.Close()
+
 	for rows.Next() {
 		var id int
-		var name string
-		var domain string
-		var filter_type string
-		err := rows.Scan(&id, &name, &domain, &filter_type)
+		var name, filterType, domainsJSON string
+		err := rows.Scan(&id, &name, &filterType, &domainsJSON)
 		if err != nil {
 			log.Fatal("Error scanning campaigns row:", err)
 		}
-		fmt.Printf("ID: %d, Name: %s\n, Domain: %s\n, Filter: %s\n", id, name, domain, filter_type)
+
+		// Unmarshal domains JSON into a map[string]bool
+		var domains map[string]bool
+		if err := json.Unmarshal([]byte(domainsJSON), &domains); err != nil {
+			log.Fatal("Error unmarshalling domains JSON:", err)
+		}
+
+		// Create Campaign object with parsed data
+		campaign := Campaign{
+			ID:         id,
+			Name:       name,
+			FilterType: filterType,
+			Domains:    domains,
+		}
+
+		// Print campaign details
+		fmt.Printf("Campaign ID: %d, Name: %s, Filter Type: %s\n", campaign.ID, campaign.Name, campaign.FilterType)
+
+		// Print domains associated with the campaign
+		fmt.Println("Domains:")
+		for domain := range campaign.Domains {
+			fmt.Printf("- %s\n", domain)
+		}
+
+		fmt.Println() // Print newline for readability
 	}
+
 	if err := rows.Err(); err != nil {
 		log.Fatal(err)
 	}
