@@ -7,18 +7,17 @@ import (
 	"log"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 type Campaign struct {
 	ID     int    `json:"id"`
 	Name   string `json:"name"`
 	Domain string `json:"domain"`
+	Filter string `json:"filter"`
 }
 
 var (
-	cache      = make(map[int][]Campaign)
-	cacheMutex sync.RWMutex
+	cache = make(map[int][]Campaign)
 )
 
 func respondWithJSON(ctx *fasthttp.RequestCtx, data interface{}) {
@@ -35,7 +34,7 @@ func respondWithJSON(ctx *fasthttp.RequestCtx, data interface{}) {
 }
 
 func PreloadData(db *sql.DB) error {
-	rows, err := db.Query("SELECT c.id, c.name, sc.source_id FROM campaigns c INNER JOIN source_campaign sc ON c.id = sc.campaign_id")
+	rows, err := db.Query("SELECT c.id, c.name, c.domain, c.filter_type, sc.source_id FROM campaigns c INNER JOIN source_campaign sc ON c.id = sc.campaign_id")
 	if err != nil {
 		return err
 	}
@@ -47,18 +46,12 @@ func PreloadData(db *sql.DB) error {
 
 	for rows.Next() {
 		var id, sourceID int
-		var name, domain string
-		if err := rows.Scan(&id, &name, &sourceID); err != nil {
+		var name, domain, filter string
+		if err := rows.Scan(&id, &name, &domain, &filter, &sourceID); err != nil {
 			return err
 		}
 
-		if id%2 == 0 {
-			domain = "yahoo.com"
-		} else {
-			domain = "google.com"
-		}
-
-		cache[sourceID] = append(cache[sourceID], Campaign{ID: id, Name: name, Domain: domain})
+		cache[sourceID] = append(cache[sourceID], Campaign{ID: id, Name: name, Domain: domain, Filter: filter})
 	}
 
 	return nil
@@ -72,7 +65,7 @@ func CachedCampaignHandler(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	unwantedDomain := strings.ToLower(string(ctx.QueryArgs().Peek("domain")))
+	domain := strings.ToLower(string(ctx.QueryArgs().Peek("domain")))
 
 	cachedData, ok := cache[sourceID]
 
@@ -80,10 +73,13 @@ func CachedCampaignHandler(ctx *fasthttp.RequestCtx) {
 
 	if ok {
 		for _, campaign := range cachedData {
-			if campaign.Domain != unwantedDomain {
+			match := (campaign.Filter == "white" && campaign.Domain == domain) ||
+				(campaign.Filter == "black" && campaign.Domain != domain)
+			if match {
 				filteredData = append(filteredData, campaign)
 			}
 		}
+
 		respondWithJSON(ctx, filteredData)
 	} else {
 		ctx.Error("Data not found", fasthttp.StatusNotFound)

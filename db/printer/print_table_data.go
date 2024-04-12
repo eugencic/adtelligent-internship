@@ -29,7 +29,7 @@ func PrintSources(db *sql.DB) {
 
 func PrintCampaigns(db *sql.DB) {
 	fmt.Println("\nCampaigns:")
-	rows, err := db.Query("SELECT id, name FROM campaigns")
+	rows, err := db.Query("SELECT id, name, domain, filter_type FROM campaigns")
 	if err != nil {
 		log.Fatal("Error querying campaigns:", err)
 	}
@@ -37,11 +37,13 @@ func PrintCampaigns(db *sql.DB) {
 	for rows.Next() {
 		var id int
 		var name string
-		err := rows.Scan(&id, &name)
+		var domain string
+		var filter_type string
+		err := rows.Scan(&id, &name, &domain, &filter_type)
 		if err != nil {
 			log.Fatal("Error scanning campaigns row:", err)
 		}
-		fmt.Printf("ID: %d, Name: %s\n", id, name)
+		fmt.Printf("ID: %d, Name: %s\n, Domain: %s\n, Filter: %s\n", id, name, domain, filter_type)
 	}
 	if err := rows.Err(); err != nil {
 		log.Fatal(err)

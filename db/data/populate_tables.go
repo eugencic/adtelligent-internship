@@ -18,7 +18,10 @@ func PopulateData(database *sql.DB) error {
 
 	for i := 0; i < 100; i++ {
 		name := fmt.Sprintf("Campaign %d", i+1)
-		_, err := database.Exec("INSERT INTO campaigns (name) VALUES (?)", name)
+		domain := getRandomDomain()
+		filterType := getRandomFilterType()
+		_, err := database.Exec("INSERT INTO campaigns (name, domain, filter_ype) VALUES (?, ?, ?)",
+			name, domain, filterType)
 		if err != nil {
 			return fmt.Errorf("error inserting campaign: %w", err)
 		}
@@ -56,4 +59,26 @@ func PopulateData(database *sql.DB) error {
 
 	fmt.Println("Data populated successfully.")
 	return nil
+}
+
+func getRandomDomain() string {
+	domains := []string{
+		"hotmail.com",
+		"aol.com",
+		"msn.com",
+		"mail.ru",
+	}
+
+	randIndex := rand.Intn(len(domains))
+	return domains[randIndex]
+}
+
+func getRandomFilterType() string {
+	filterTypes := []string{
+		"white",
+		"black",
+	}
+
+	randIndex := rand.Intn(len(filterTypes))
+	return filterTypes[randIndex]
 }
