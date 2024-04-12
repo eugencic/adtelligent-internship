@@ -1,89 +1,3 @@
-//package api
-//
-//import (
-//	"database/sql"
-//	"encoding/json"
-//	"github.com/valyala/fasthttp"
-//	"log"
-//	"strconv"
-//	"strings"
-//)
-//
-//type Campaign struct {
-//	ID   int    `json:"id"`
-//	Name string `json:"name"`
-//}
-//
-//var (
-//	cache = make(map[int][]Campaign)
-//)
-//
-//func respondWithJSON(ctx *fasthttp.RequestCtx, data interface{}) {
-//	response, err := json.Marshal(data)
-//	if err != nil {
-//		log.Printf("Error marshalling data to JSON: %v", err)
-//		ctx.Error("Internal Server Error", fasthttp.StatusInternalServerError)
-//		return
-//	}
-//
-//	ctx.SetContentType("application/json")
-//	ctx.SetStatusCode(fasthttp.StatusOK)
-//	ctx.SetBody(response)
-//}
-//
-//func PreloadData(db *sql.DB) error {
-//	rows, err := db.Query("SELECT c.id, c.name, sc.source_id FROM campaigns c INNER JOIN source_campaign sc ON c.id = sc.campaign_id")
-//	if err != nil {
-//		return err
-//	}
-//	defer func(rows *sql.Rows) {
-//		err := rows.Close()
-//		if err != nil {
-//		}
-//	}(rows)
-//
-//	for rows.Next() {
-//		var id, sourceID int
-//		var name, domain, filter string
-//		if err := rows.Scan(&id, &name, &domain, &filter, &sourceID); err != nil {
-//			return err
-//		}
-//
-//		cache[sourceID] = append(cache[sourceID], Campaign{ID: id, Name: name, Domain: domain, Filter: filter})
-//	}
-//
-//	return nil
-//}
-//
-//func CachedCampaignHandler(ctx *fasthttp.RequestCtx) {
-//	sourceIDStr := string(ctx.QueryArgs().Peek("source_id"))
-//	sourceID, err := strconv.Atoi(sourceIDStr)
-//	if err != nil {
-//		ctx.Error("Invalid source_id", fasthttp.StatusBadRequest)
-//		return
-//	}
-//
-//	domain := strings.ToLower(string(ctx.QueryArgs().Peek("domain")))
-//
-//	cachedData, ok := cache[sourceID]
-//
-//	var filteredData []Campaign
-//
-//	if ok {
-//		for _, campaign := range cachedData {
-//			match := (campaign.Filter == "white" && campaign.Domain == domain) ||
-//				(campaign.Filter == "black" && campaign.Domain != domain)
-//			if match {
-//				filteredData = append(filteredData, campaign)
-//			}
-//		}
-//
-//		respondWithJSON(ctx, filteredData)
-//	} else {
-//		ctx.Error("Data not found", fasthttp.StatusNotFound)
-//	}
-//}
-
 package api
 
 import (
@@ -104,7 +18,7 @@ type Campaign struct {
 	SourceID   int
 }
 
-var cache = make(map[int][]Campaign)
+var preloadedCache = make(map[int][]Campaign)
 
 func respondWithJSON(ctx *fasthttp.RequestCtx, data interface{}) {
 	response, err := json.Marshal(data)
@@ -117,6 +31,28 @@ func respondWithJSON(ctx *fasthttp.RequestCtx, data interface{}) {
 	ctx.SetContentType("application/json")
 	ctx.SetStatusCode(fasthttp.StatusOK)
 	ctx.SetBody(response)
+}
+
+// extractBaseDomain extracts the base domain (root domain) from a full domain name
+func extractBaseDomain(fullDomain string) string {
+	// Convert domain to lowercase for case-insensitive comparison
+	fullDomain = strings.ToLower(fullDomain)
+
+	// Split domain into parts based on dot (.)
+	parts := strings.Split(fullDomain, ".")
+
+	// Determine the number of parts in the domain
+	numParts := len(parts)
+
+	// Extract base domain based on the number of parts
+	var baseDomain string
+	if numParts > 2 { // More than two parts (e.g., subdomain.domain.com)
+		baseDomain = strings.Join(parts[numParts-2:], ".")
+	} else { // Two parts or less (e.g., domain.com or subdomain.domain.com)
+		baseDomain = fullDomain
+	}
+
+	return baseDomain
 }
 
 func PreloadData(db *sql.DB) error {
@@ -142,13 +78,11 @@ func PreloadData(db *sql.DB) error {
 			return err
 		}
 
-		// Unmarshal domains JSON into a map[string]bool
 		var domains map[string]bool
 		if err := json.Unmarshal([]byte(domainsJSON), &domains); err != nil {
 			return fmt.Errorf("error unmarshalling domains JSON: %w", err)
 		}
 
-		// Create Campaign object with parsed data
 		campaign := Campaign{
 			ID:         id,
 			Name:       name,
@@ -157,8 +91,7 @@ func PreloadData(db *sql.DB) error {
 			SourceID:   sourceID,
 		}
 
-		// Append campaign to cache map
-		cache[sourceID] = append(cache[sourceID], campaign)
+		preloadedCache[sourceID] = append(preloadedCache[sourceID], campaign)
 	}
 
 	return nil
@@ -172,9 +105,9 @@ func CachedCampaignHandler(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	requestedDomain := strings.ToLower(string(ctx.QueryArgs().Peek("domain")))
+	requestedDomain := extractBaseDomain(strings.ToLower(string(ctx.QueryArgs().Peek("domain"))))
 
-	cachedData, ok := cache[sourceID]
+	cachedData, ok := preloadedCache[sourceID]
 
 	var filteredData []Campaign
 
