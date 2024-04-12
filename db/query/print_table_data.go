@@ -1,31 +1,35 @@
-package printer
+package queries
 
 import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 )
 
-func PrintSources(db *sql.DB) {
+func PrintSources(db *sql.DB) error {
 	fmt.Println("Sources:")
 	rows, err := db.Query("SELECT id, name FROM sources")
 	if err != nil {
-		log.Fatal("Error querying sources:", err)
+		return fmt.Errorf("error querying sources: %w", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+		}
+	}(rows)
 	for rows.Next() {
 		var id int
 		var name string
 		err := rows.Scan(&id, &name)
 		if err != nil {
-			log.Fatal("Error scanning sources row:", err)
+			return fmt.Errorf("error scanning sources row: %w", err)
 		}
 		fmt.Printf("ID: %d, Name: %s\n", id, name)
 	}
 	if err := rows.Err(); err != nil {
-		log.Fatal(err)
 	}
+
+	return nil
 }
 
 type Campaign struct {
@@ -35,29 +39,31 @@ type Campaign struct {
 	Domains    map[string]bool // Map to store domains
 }
 
-func PrintCampaigns(db *sql.DB) {
+func PrintCampaigns(db *sql.DB) error {
 	fmt.Println("\nCampaigns:")
 	rows, err := db.Query("SELECT id, name, filter_type, domains FROM campaigns")
 	if err != nil {
-		log.Fatal("Error querying campaigns:", err)
+		return fmt.Errorf("error querying campaigns: %w", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+		}
+	}(rows)
 
 	for rows.Next() {
 		var id int
 		var name, filterType, domainsJSON string
 		err := rows.Scan(&id, &name, &filterType, &domainsJSON)
 		if err != nil {
-			log.Fatal("Error scanning campaigns row:", err)
+			return fmt.Errorf("error scanning campaigns row: %w", err)
 		}
 
-		// Unmarshal domains JSON into a map[string]bool
 		var domains map[string]bool
 		if err := json.Unmarshal([]byte(domainsJSON), &domains); err != nil {
-			log.Fatal("Error unmarshalling domains JSON:", err)
+			return fmt.Errorf("error unmarshalling domains JSON: %w", err)
 		}
 
-		// Create Campaign object with parsed data
 		campaign := Campaign{
 			ID:         id,
 			Name:       name,
@@ -65,39 +71,43 @@ func PrintCampaigns(db *sql.DB) {
 			Domains:    domains,
 		}
 
-		// Print campaign details
 		fmt.Printf("Campaign ID: %d, Name: %s, Filter Type: %s\n", campaign.ID, campaign.Name, campaign.FilterType)
 
-		// Print domains associated with the campaign
 		fmt.Println("Domains:")
 		for domain := range campaign.Domains {
 			fmt.Printf("- %s\n", domain)
 		}
 
-		fmt.Println() // Print newline for readability
+		fmt.Println()
 	}
 
 	if err := rows.Err(); err != nil {
-		log.Fatal(err)
 	}
+
+	return nil
 }
 
-func PrintSourceCampaign(db *sql.DB) {
+func PrintSourceCampaign(db *sql.DB) error {
 	fmt.Println("\nSource_campaign:")
 	rows, err := db.Query("SELECT source_id, campaign_id FROM source_campaign")
 	if err != nil {
-		log.Fatal("Error querying source_campaign:", err)
+		return fmt.Errorf("error querying source_campaign: %w", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+		}
+	}(rows)
 	for rows.Next() {
 		var sourceID, campaignID int
 		err := rows.Scan(&sourceID, &campaignID)
 		if err != nil {
-			log.Fatal("Error scanning source_campaign row:", err)
+			return fmt.Errorf("error scanning source_campaign row: %w", err)
 		}
 		fmt.Printf("Source ID: %d, Campaign ID: %d\n", sourceID, campaignID)
 	}
 	if err := rows.Err(); err != nil {
-		log.Fatal(err)
 	}
+
+	return nil
 }

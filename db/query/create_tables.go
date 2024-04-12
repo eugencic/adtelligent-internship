@@ -1,4 +1,4 @@
-package schema
+package queries
 
 import (
 	"database/sql"
@@ -8,7 +8,7 @@ import (
 )
 
 func CreateTables(db *sql.DB) error {
-	queryBytes, err := ioutil.ReadFile("db/schema/CreateTables.sql")
+	queryBytes, err := ioutil.ReadFile("db/sql/CreateTables.sql")
 	if err != nil {
 		return fmt.Errorf("error reading file: %w", err)
 	}
@@ -27,6 +27,6 @@ func CreateTables(db *sql.DB) error {
 		}
 	}
 
-	fmt.Println("Tables created successfully.")
+	// fmt.Println("Tables created successfully.")
 	return nil
 }

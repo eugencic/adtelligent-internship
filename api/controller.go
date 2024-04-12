@@ -1,20 +1,16 @@
 package api
 
 import (
-	"database/sql"
+	"adtelligent-internship/api/handler"
 	"github.com/valyala/fasthttp"
 )
 
-func NewRequestHandler(db *sql.DB) fasthttp.RequestHandler {
+func NewRequestHandler() fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		switch string(ctx.Path()) {
-		case "/cached-campaigns":
-			CachedCampaignHandler(ctx)
 		case "/campaigns":
-
-			CampaignHandler(ctx, db)
+			handler.CampaignHandler(ctx)
 		default:
-
 			ctx.Error("Not Found", fasthttp.StatusNotFound)
 		}
 	}

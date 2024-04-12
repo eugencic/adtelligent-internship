@@ -2,11 +2,11 @@ package main
 
 import (
 	"adtelligent-internship/api"
+	"adtelligent-internship/api/repository"
 	"adtelligent-internship/db"
-	"adtelligent-internship/db/data"
-	"adtelligent-internship/db/printer"
-	"adtelligent-internship/db/schema"
+	"adtelligent-internship/db/query"
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/valyala/fasthttp"
 	"log"
@@ -23,26 +23,26 @@ func main() {
 		}
 	}(database)
 
-	err = schema.CreateTables(database)
+	err = queries.CreateTables(database)
 	if err != nil {
 		log.Fatalf("Failed to create tables: %v", err)
 	}
 
-	err = data.PopulateData(database)
+	err = queries.PopulateData(database)
 	if err != nil {
 		log.Fatalf("Failed to populate data: %v", err)
 	}
 
-	printer.PrintSources(database)
-	printer.PrintCampaigns(database)
-	printer.PrintSourceCampaign(database)
+	// util.PrintData(database)
 
-	err = api.PreloadData(database)
+	err = repository.PreloadData(database)
 	if err != nil {
 		log.Fatalf("Failed to preload data: %v", err)
 	}
 
-	requestHandler := api.NewRequestHandler(database)
+	fmt.Println("Data is set.")
+
+	requestHandler := api.NewRequestHandler()
 
 	log.Println("Starting HTTP server on port 8080...")
 	if err := fasthttp.ListenAndServe(":8080", requestHandler); err != nil {

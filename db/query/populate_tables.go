@@ -1,4 +1,4 @@
-package data
+package queries
 
 import (
 	"database/sql"
@@ -82,7 +82,7 @@ func PopulateData(database *sql.DB) error {
 		}
 	}
 
-	fmt.Println("Data populated successfully.")
+	// fmt.Println("Data populated successfully.")
 	return nil
 }
 
