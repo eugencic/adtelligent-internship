@@ -20,13 +20,7 @@ go run main.go
 - Get data:
 
   ```
-  GET "http://localhost:8080/campaigns?source_id=1"
-  ```
-
-- Get cached data:
-
-  ```
-  GET "http://localhost:8080/cached-campaigns?source_id=1"
+  GET "http://localhost:8080/campaigns?source_id=1&domain=gmail.com"
   ```
 
 ## Benchmarks:
@@ -38,4 +32,9 @@ Result without cache:
 Result with cache:
 ```
   BenchmarkCachedCampaignHandler-16    	 1000000	      1037 ns/op	         0 response_time_ms
+```
+
+Result with map cache:
+```
+BenchmarkCampaignHandler-16    	 4025371	       286.4 ns/op	         0 response_time_ms
 ```
