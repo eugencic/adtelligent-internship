@@ -26,9 +26,9 @@ func CampaignHandler(ctx *fasthttp.RequestCtx) {
 
 	requestedDomain := util.ExtractBaseDomain(strings.ToLower(string(ctx.QueryArgs().Peek("domain"))))
 	//fmt.Println(repository.PreloadedCache)
-	
-	cachedData, ok := repository.PreloadedCache[sourceID]
 
+	cachedData, ok := repository.PreloadedCache[sourceID]
+	//fmt.Println(repository.PreloadedCache[sourceID])
 	var filteredData []repository.Campaign
 
 	if ok {
