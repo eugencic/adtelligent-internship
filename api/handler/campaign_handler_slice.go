@@ -8,15 +8,15 @@ import (
 	"strings"
 )
 
-type Campaign struct {
+type CampaignSlice struct {
 	ID         int
 	Name       string
 	FilterType string
-	Domains    map[string]bool
+	Domains    []string
 	SourceID   int
 }
 
-func CampaignHandler(ctx *fasthttp.RequestCtx) {
+func CampaignHandlerSlice(ctx *fasthttp.RequestCtx) {
 	sourceIDStr := string(ctx.QueryArgs().Peek("source_id"))
 	sourceID, err := strconv.Atoi(sourceIDStr)
 	if err != nil {
@@ -25,21 +25,19 @@ func CampaignHandler(ctx *fasthttp.RequestCtx) {
 	}
 
 	requestedDomain := util.ExtractBaseDomain(strings.ToLower(string(ctx.QueryArgs().Peek("domain"))))
-	//fmt.Println(repository.PreloadedCache)
 
-	cachedData, ok := repository.PreloadedCache[sourceID]
-	//fmt.Println(repository.PreloadedCache[sourceID])
-	var filteredData []repository.Campaign
+	cachedData, ok := repository.PreloadedSliceCache[sourceID]
+	var filteredData []repository.CampaignSlice
 
 	if ok {
 		for _, campaign := range cachedData {
 			switch campaign.FilterType {
 			case "black":
-				if !campaign.Domains[requestedDomain] {
+				if !containsDomain(campaign.Domains, requestedDomain) {
 					filteredData = append(filteredData, campaign)
 				}
 			case "white":
-				if campaign.Domains[requestedDomain] {
+				if containsDomain(campaign.Domains, requestedDomain) {
 					filteredData = append(filteredData, campaign)
 				}
 			}
@@ -49,4 +47,13 @@ func CampaignHandler(ctx *fasthttp.RequestCtx) {
 	} else {
 		ctx.Error("Data not found", fasthttp.StatusNotFound)
 	}
+}
+
+func containsDomain(domains []string, domain string) bool {
+	for _, d := range domains {
+		if d == domain {
+			return true
+		}
+	}
+	return false
 }
