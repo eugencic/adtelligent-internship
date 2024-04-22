@@ -3,9 +3,13 @@ package handler
 import (
 	"adtelligent-internship/api/repository"
 	"adtelligent-internship/api/util"
+	"fmt"
 	"github.com/valyala/fasthttp"
+	"math/rand"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 type Campaign struct {
@@ -44,6 +48,27 @@ func CampaignHandlerMap(ctx *fasthttp.RequestCtx) {
 				}
 			}
 		}
+
+		//for _ = range cachedData {
+		//	r := rand.Intn(5)
+		//	var randTime = time.Duration(r) * time.Second
+		//	fmt.Println(randTime)
+		//	time.Sleep(randTime)
+		//}
+
+		var waitGroup sync.WaitGroup
+		waitGroup.Add(len(filteredData))
+		for _ = range filteredData {
+			go func() {
+				r := rand.Intn(5)
+				var randTime = time.Duration(r) * time.Second
+				fmt.Println(randTime)
+				time.Sleep(randTime)
+				waitGroup.Done()
+			}()
+		}
+
+		waitGroup.Wait()
 
 		util.RespondWithJSON(ctx, filteredData)
 	} else {
