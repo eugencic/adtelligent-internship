@@ -10,24 +10,16 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/valyala/fasthttp"
 	"log"
+	"math/rand"
 	_ "net/http/pprof"
-	"os"
 	"runtime"
-	"runtime/pprof"
+	"time"
 )
 
 func main() {
-	f, err := os.Create("profiles/mem_main.pprof")
-	if err != nil {
-		log.Fatal("could not create memory profile: ", err)
-	}
-	defer f.Close()
-
 	runtime.GC()
 
-	//go func() {
-	//	log.Println(http.ListenAndServe("localhost:6060", nil))
-	//}()
+	rand.Seed(time.Now().UnixNano())
 
 	database, err := db.ConnectToDB()
 	if err != nil {
@@ -59,18 +51,49 @@ func main() {
 		log.Fatalf("Failed to preload data: %v", err)
 	}
 
-	if err := pprof.WriteHeapProfile(f); err != nil {
-		log.Fatal("could not write memory profile: ", err)
-	}
-
 	fmt.Println("Data is set.")
 
 	requestHandler := api.NewRequestHandler()
+
+	//go simulateRequests()
 
 	log.Println("Starting HTTP server on port 8080...")
 	if err := fasthttp.ListenAndServe(":8080", requestHandler); err != nil {
 		log.Fatalf("Error starting HTTP server: %v", err)
 	}
-
-	//defer f.Close()
 }
+
+//func simulateRequests() {
+//	f, err := os.Create("profiles/mem_requests.pprof")
+//	if err != nil {
+//		log.Fatal("could not create memory profile: ", err)
+//	}
+//	defer f.Close()
+//
+//	url := "http://localhost:8080/campaigns_map?source_id=1&domain=gmail.com" // Adjust the URL based on your endpoint
+//
+//	client := &http.Client{}
+//
+//	numRequests := 10
+//
+//	for i := 0; i < numRequests; i++ {
+//		req, err := http.NewRequest("GET", url, nil)
+//		if err != nil {
+//			log.Fatalf("Failed to create HTTP request: %v", err)
+//		}
+//
+//		resp, err := client.Do(req)
+//		if err != nil {
+//			log.Fatalf("Failed to send HTTP request: %v", err)
+//		}
+//		defer resp.Body.Close()
+//
+//		fmt.Println("response Status:", resp.Status)
+//	}
+//
+//	log.Printf("Simulated %d requests successfully", numRequests)
+//
+//	if err := pprof.WriteHeapProfile(f); err != nil {
+//		log.Fatal("Could not write memory profile: ", err)
+//	}
+//}
