@@ -13,6 +13,7 @@ import (
 	"log"
 	"math/rand"
 	_ "net/http/pprof"
+	"os"
 	"runtime"
 	"time"
 )
@@ -58,8 +59,17 @@ func main() {
 
 	requestHandler := api.NewRequestHandler()
 
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: go run server.go <ip_address> <port>")
+		return
+	}
+
+	ipAddress := os.Args[1]
+	port := os.Args[2]
+	addr := fmt.Sprintf("%s:%s", ipAddress, port)
+
 	log.Println("Starting HTTP server on port 8080...")
-	if err := fasthttp.ListenAndServe(":8080", requestHandler); err != nil {
+	if err := fasthttp.ListenAndServe(addr, requestHandler); err != nil {
 		log.Fatalf("Error starting HTTP server: %v", err)
 	}
 }

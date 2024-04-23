@@ -12,7 +12,7 @@ docker compose up
 ```
 
 ```bash
-go run .  
+go run main.go localhost 8080
 ```
 
 ## Endpoints:
@@ -27,6 +27,8 @@ go run .
   GET "http://localhost:8080/campaigns_slice?source_id=1&domain=gmail.com"
   ```
 
-## [Benchmarks](reports/Benchmarks.md)
+## [Benchmarks](reports/benchmarks.md)
 
-## [Profiling](reports/Profiling.md)
+## [Profiling](reports/profiling.md)
+
+## [Local DNS](reports/local-dns.md)
