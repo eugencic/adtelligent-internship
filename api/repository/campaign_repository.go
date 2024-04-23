@@ -1,21 +1,15 @@
 package repository
 
 import (
+	"adtelligent-internship/model"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	_ "net/http/pprof"
 )
 
-type Campaign struct {
-	ID         int
-	Name       string
-	FilterType string
-	Domains    map[string]bool
-	SourceID   int
-}
-
-var PreloadedCache = make(map[int][]Campaign, 100)
+var PreloadedCache = make(map[int][]model.Campaign, 100)
+var PreloadedSliceCache = make(map[int][]model.CampaignSlice, 100)
 
 func PreloadDataWithMap(db *sql.DB) error {
 	rows, err := db.Query("SELECT c.id, c.name, c.filter_type, c.domains, sc.source_id FROM campaigns c INNER JOIN source_campaign sc ON c.id = sc.campaign_id")
@@ -44,12 +38,7 @@ func PreloadDataWithMap(db *sql.DB) error {
 			return fmt.Errorf("error unmarshalling domains JSON: %w", err)
 		}
 
-		//decoder := json.NewDecoder(strings.NewReader(domainsJSON))
-		//if err := decoder.Decode(&domains); err != nil {
-		//	return fmt.Errorf("error decoding domains JSON: %w", err)
-		//}
-
-		campaign := Campaign{
+		campaign := model.Campaign{
 			ID:         id,
 			Name:       name,
 			FilterType: filterType,
@@ -62,16 +51,6 @@ func PreloadDataWithMap(db *sql.DB) error {
 
 	return nil
 }
-
-type CampaignSlice struct {
-	ID         int
-	Name       string
-	FilterType string
-	Domains    []string
-	SourceID   int
-}
-
-var PreloadedSliceCache = make(map[int][]CampaignSlice)
 
 func PreloadDataWithSlices(db *sql.DB) error {
 	rows, err := db.Query("SELECT c.id, c.name, c.filter_type, c.domains, sc.source_id FROM campaigns c INNER JOIN source_campaign sc ON c.id = sc.campaign_id")
@@ -100,17 +79,12 @@ func PreloadDataWithSlices(db *sql.DB) error {
 			return fmt.Errorf("error unmarshalling domains JSON: %w", err)
 		}
 
-		//decoder := json.NewDecoder(strings.NewReader(domainsJSON))
-		//if err := decoder.Decode(&domainsMap); err != nil {
-		//	return fmt.Errorf("error decoding domains JSON: %w", err)
-		//}
-
 		var domains []string
 		for domain := range domainsMap {
 			domains = append(domains, domain)
 		}
 
-		campaign := CampaignSlice{
+		campaign := model.CampaignSlice{
 			ID:         id,
 			Name:       name,
 			FilterType: filterType,
@@ -119,7 +93,7 @@ func PreloadDataWithSlices(db *sql.DB) error {
 		}
 
 		if _, ok := PreloadedSliceCache[sourceID]; !ok {
-			PreloadedSliceCache[sourceID] = make([]CampaignSlice, 0)
+			PreloadedSliceCache[sourceID] = make([]model.CampaignSlice, 0)
 		}
 		PreloadedSliceCache[sourceID] = append(PreloadedSliceCache[sourceID], campaign)
 	}

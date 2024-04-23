@@ -3,41 +3,15 @@ package handler
 import (
 	"adtelligent-internship/api/repository"
 	"adtelligent-internship/api/util"
-	"fmt"
+	"adtelligent-internship/model"
 	"github.com/valyala/fasthttp"
 	"log"
-	"math/rand"
 	"os"
 	"runtime/pprof"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 )
-
-type Campaign struct {
-	ID         int
-	Name       string
-	FilterType string
-	Domains    map[string]bool
-	SourceID   int
-}
-
-type CampaignWithPrice struct {
-	Campaign repository.Campaign
-	Price    int
-}
-
-func (c Campaign) Call() CampaignWithPrice {
-	price := rand.Intn(100) + 1
-	fmt.Printf("Campaign %d generated price: %d\n", c.ID, price)
-
-	delay := rand.Intn(5)
-	fmt.Printf("Campaign %d simulating response delay: %d seconds\n", c.ID, delay)
-	time.Sleep(time.Duration(delay) * time.Second)
-
-	return CampaignWithPrice{Campaign: repository.Campaign(c), Price: price}
-}
 
 func CampaignHandlerMap(ctx *fasthttp.RequestCtx) {
 	sourceIDStr := string(ctx.QueryArgs().Peek("source_id"))
@@ -55,13 +29,13 @@ func CampaignHandlerMap(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	f, err := os.Create("profiles/mem_handler.pprof")
+	f, err := os.Create("profiles/mem_campaign_handler_map.pprof")
 	if err != nil {
 		log.Fatal("could not create memory profile: ", err)
 	}
 	defer f.Close()
 
-	var filteredData []repository.Campaign
+	var filteredData []model.Campaign
 	for _, campaign := range cachedData {
 		switch campaign.FilterType {
 		case "black":
@@ -75,15 +49,15 @@ func CampaignHandlerMap(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	campaignsWithPrices := make(chan CampaignWithPrice, len(filteredData))
+	campaignsWithPrices := make(chan model.CampaignWithPrice, len(filteredData))
 
 	for _, campaign := range filteredData {
-		go func(c Campaign) {
+		go func(c model.Campaign) {
 			campaignsWithPrices <- c.Call()
-		}(Campaign(campaign))
+		}(campaign)
 	}
 
-	var campaignsWithPricesSlice []CampaignWithPrice
+	var campaignsWithPricesSlice []model.CampaignWithPrice
 	for i := 0; i < len(filteredData); i++ {
 		cwp := <-campaignsWithPrices
 		campaignsWithPricesSlice = append(campaignsWithPricesSlice, cwp)
@@ -95,7 +69,7 @@ func CampaignHandlerMap(ctx *fasthttp.RequestCtx) {
 		return campaignsWithPricesSlice[i].Price < campaignsWithPricesSlice[j].Price
 	})
 
-	var sortedCampaigns []repository.Campaign
+	var sortedCampaigns []model.Campaign
 	for _, cwp := range campaignsWithPricesSlice {
 		sortedCampaigns = append(sortedCampaigns, cwp.Campaign)
 	}
