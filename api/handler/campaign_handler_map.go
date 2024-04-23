@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 func CampaignHandlerMap(ctx *fasthttp.RequestCtx) {
@@ -49,13 +50,19 @@ func CampaignHandlerMap(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(len(filteredData))
+
 	campaignsWithPrices := make(chan model.CampaignWithPrice, len(filteredData))
 
 	for _, campaign := range filteredData {
 		go func(c model.Campaign) {
 			campaignsWithPrices <- c.Call()
+			wg.Done()
 		}(campaign)
 	}
+
+	wg.Wait()
 
 	var campaignsWithPricesSlice []model.CampaignWithPrice
 	for i := 0; i < len(filteredData); i++ {
