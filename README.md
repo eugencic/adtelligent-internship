@@ -20,7 +20,11 @@ go run .
 - Get data:
 
   ```
-  GET "http://localhost:8080/campaigns?source_id=1&domain=gmail.com"
+  GET "http://localhost:8080/campaigns_map?source_id=1&domain=gmail.com"
+  ```
+
+  ```
+  GET "http://localhost:8080/campaigns_slice?source_id=1&domain=gmail.com"
   ```
 
 ## [Benchmarks](reports/Benchmarks.md)
